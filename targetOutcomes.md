@@ -1,5 +1,5 @@
 # Target Outcomes
-## Article ID: 24-4-2015 PS
+## Article ID: EXT_24-4-2015
 
 For this article you should focus on the findings reported in the results section of Study 1.
 
