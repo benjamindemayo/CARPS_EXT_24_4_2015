@@ -1,0 +1,2 @@
+articleID,pilotNames,copilotNames,pilotTTC,copilotTTC,pilotStartDate,copilotStartDate,completionDate,Author_Assistance,finalOutcome,Insufficient_Information_Errors,locus_typo,locus_specification,locus_analysis,locus_data,locus_unidentified,locus_typo_resolved,locus_specification_resolved,locus_analysis_resolved,locus_data_resolved,locus_unidentified_resolved
+EXT_24_2_2015,Benjamin deMayo,NA,240,NA,2018-10-19,NA,NA,FALSE,Success without author assistance,0,0,1,0,0,0,NA,NA,NA,NA,NA

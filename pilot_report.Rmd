@@ -1,0 +1,361 @@
+---
+title: "CARPS Reproducibility Report"
+author: "Benny deMayo"
+date: 2018-10-19
+output: 
+  html_document:
+    toc: true
+    toc_depth: 6
+---
+  
+  [PILOT/COPILOT - TEXT IN SQUARE BRACKETS IS HERE FOR GUIDANCE. COPILOT PLEASE DELETE BEFORE KNITTING THE FINAL REPORT]
+  
+```{r}
+source('reproCheck.R')
+```
+
+
+# Report Details
+
+[PILOT/COPILOT ENTER RELEVANT REPORT DETAILS HERE]
+
+```{r}
+articleID <- 'EXT_24_2_2015' # insert the article ID code here e.g., "10-3-2015_PS"
+reportType <- 'pilot' # specify whether this is the 'pilot' report or 'final' report
+pilotNames <- 'Benjamin deMayo' # insert the pilot's name here e.g., "Tom Hardwicke".  If there are multiple cpilots enter both names in a character string e.g., "Tom Hardwicke, Bob Dylan"
+copilotNames <- NA # # insert the co-pilot's name here e.g., "Michael Frank". If there are multiple co-pilots enter both names in a character string e.g., "Tom Hardwicke, Bob Dylan"
+pilotTTC <- 240 # insert the pilot's estimated time to complete (in minutes, fine to approximate) e.g., 120
+copilotTTC <- NA # insert the co-pilot's estimated time to complete (in minutes, fine to approximate) e.g., 120
+pilotStartDate <- as.Date("10/19/18", format = "%m/%d/%y")  # insert the pilot's start date in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+copilotStartDate <- NA # insert the co-pilot's start date in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+completionDate <- NA # copilot insert the date of final report completion (after any necessary rounds of author assistance) in US format e.g., as.Date("01/25/18", format = "%m/%d/%y")
+```
+
+#Methods summary: 
+  
+Authors tested whether physical experience enhances science learning. Students completed a pretest assessing their understanding the physical concept of angular momentum and then were divided into an 'observation' group and an experimental group in which they experienced the physical consequences of conservation of angular momentum. Authors predicted that physical exposure to the concept of angular momentum would boost learning and thus cause higher scores at posttest.
+
+
+#Target outcomes: 
+  
+Pretest performance did not differ as a function of group, as revealed by a one-way analysis of variance (ANOVA), F(1, 42) = 0.01, p > .250 (see Fig. 2, left panel). However, an ANOVA controlling for pretest accuracy revealed that group did have a significant effect on posttest
+performance, F(1, 41) = 5.21, p = .028, ηp 2 = .113. Students in the action group showed a significantly nonzero (~10%) gain in accuracy from pretest to posttest, t(21) = 3.07, p = .006. Those in the observation group did not, t(21) = –0.01, p > .250 (see Fig. 2, left panel).
+
+------
+  
+  [PILOT/COPILOT DO NOT CHANGE THE CODE IN THE CHUNK BELOW]  
+
+```{r global_options, include=FALSE}
+# sets up some formatting options for the R Markdown document
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+# Step 1: Load packages and prepare report object
+
+[PILOT/COPILOT Some useful packages are being loaded below. You can add any additional ones you might need too.]
+
+```{r}
+# load packages
+library(tidyverse) # for data munging
+library(knitr) # for kable table formating
+library(haven) # import and export 'SPSS', 'Stata' and 'SAS' Files
+library(readxl) # import excel files
+library(afex)
+library(ez)
+#library(CARPSreports) # custom report functions
+```
+
+[PILOT/COPILOT DO NOT MAKE CHANGES TO THE CODE CHUNK BELOW]
+
+```{r}
+# Prepare report object. This will be updated automatically by the reproCheck function each time values are compared
+reportObject <- data.frame(dummyRow = TRUE, reportedValue = NA, obtainedValue = NA, valueType = NA, percentageError = NA, comparisonOutcome = NA, eyeballCheck = NA)
+```
+
+# Step 2: Load data
+
+```{r}
+load("~/Desktop/CARPS_EXT_24_4_2015/data/study 1 physics_dataverse.RData")
+
+study_one_df <- x
+```
+
+# Step 3: Tidy data
+
+Data are already tidy.
+
+# Step 4: Run analysis
+
+## Pre-processing
+
+```{r}
+#Renaming variables to have more descriptive titles.
+
+study_one_renamed_df <- 
+  study_one_df %>% 
+  rename(
+    pretest_magnitude = mag1,
+    posttest_magnitude = mag2,
+    pretest_direction = dir1,
+    posttest_direction = dir2,
+    pretest_rt = RT1,
+    posttest_rt = RT2
+  ) %>% 
+  mutate(
+    difference_check = posttest_magnitude - pretest_magnitude,
+    difference_accuracy = difference_check == mag_improvement
+  )
+
+pre_post_summary <- 
+  study_one_renamed_df %>% 
+  group_by(group) %>% 
+  summarize(
+    pretest_mean = mean(pretest_magnitude),
+    postest_mean = mean(posttest_magnitude)
+  )
+```
+
+
+## Inferential statistics
+
+```{r}
+##One-way ANOVA showing no difference at pretest.
+a1 <- aov_ez(
+  id = "subject",
+  data = study_one_renamed_df,
+  dv = "pretest_magnitude",
+  between = "group"
+)
+
+a1
+
+#reproCheck on F-statistic
+reportObject <- 
+  reproCheck(
+  reportedValue = "0.01", 
+  obtainedValue = a1$anova_table$`F`,
+  valueType = "F",
+  eyeballCheck = TRUE
+)
+
+#reproCheck on df
+reportObject <- 
+  reproCheck(
+  reportedValue = "42",
+  obtainedValue = a1$anova_table$`den Df`,
+  valueType = "df"
+)
+
+#reproCheck on p-value
+reportObject <- 
+  reproCheck(
+  reportedValue = ".250",
+  obtainedValue = a1$anova_table$`Pr(>F)`,
+  valueType = 'p',
+  eyeballCheck = TRUE
+)
+```
+
+What does the "ANOVA controlling for pretest accuracy" mean? 
+
+Is it a one-way ANOVA on the difference scores?
+
+```{r}
+aov_ez(id = "subject",
+       dv = "mag_improvement",
+       between = "group", 
+       data = study_one_renamed_df)
+```
+
+No - the DF are incorrect (42 vs. 41) and the p-value is not correct. 
+
+Next hypothesis. Could it be an ANCOVA? (Just specifying a covariate in the analysis)?
+
+Here is the ANOVA on post-test magnitude alone. 
+
+```{r}
+aov_ez(id = "subject",
+       dv = "posttest_magnitude",
+       between = "group", 
+       data = study_one_renamed_df)
+```
+Here is the ANCOVA. 
+
+```{r}
+ezANOVA(study_one_renamed_df, 
+        dv = posttest_magnitude,
+        wid = subject,
+        within_covariates = pretest_magnitude, 
+        between = group)
+```
+
+Another possibility is that they do the appropriate RM anova and look at the group * time interation term. 
+
+```{r}
+s1_long <- study_one_renamed_df %>%
+  gather(phase, value, pretest_magnitude, posttest_magnitude)
+
+ezANOVA(s1_long, 
+        dv = value,
+        wid = subject,
+        within = phase,
+        between = group)$ANOVA
+```
+But we don't see that test matching in terms of df or p value, either. 
+
+
+
+
+
+
+```{r}
+##Paired t-test for 'action' (experimental group)
+action_group <- 
+  study_one_renamed_df %>% 
+  filter(group == "action")
+
+t1_action <- 
+  t.test(
+    action_group$posttest_magnitude,
+    action_group$pretest_magnitude,
+    paired = TRUE
+  )
+
+t1_action
+
+#reproCheck on t-statistic
+reportObject <- 
+  reproCheck(
+    reportedValue = "3.07",
+    obtainedValue = t1_action$statistic,
+    valueType = "t"
+  )
+
+#reproCheck on degrees of freedom
+reportObject <- 
+  reproCheck(
+    reportedValue = "21",
+    obtainedValue = t1_action$parameter,
+    valueType = "df"
+  )
+
+#reproCheck on p-value
+reportObject <- 
+  reproCheck(
+    reportedValue = ".006",
+    obtainedValue = t1_action$p.value,
+    valueType = "p"
+  )
+
+##Paired t-test for observation (control) group
+observation_group <- 
+  study_one_renamed_df %>% 
+  filter(group == "observation")
+
+t1_observation <- 
+  t.test(
+    observation_group$posttest_magnitude,
+    observation_group$pretest_magnitude,
+    paired = TRUE
+  )
+
+t1_observation
+
+reportObject <- 
+  reproCheck(
+    reportedValue = "-0.01",
+    obtainedValue = t1_observation$statistic,
+    valueType = "t"
+  )
+
+#reproCheck on degrees of freedom
+reportObject <- 
+  reproCheck(
+    reportedValue = "21",
+    obtainedValue = t1_observation$parameter,
+    valueType = "df"
+  )
+
+#reproCheck on p-value
+reportObject <- 
+  reproCheck(
+    reportedValue = ".250",
+    obtainedValue = t1_observation$p.value,
+    valueType = "p",
+    eyeballCheck = TRUE
+  )
+```
+
+# Step 5: Conclusion
+
+This reproducibility check was mostly a success. All test statistics, p-values and degrees of freedom were reproducible, with the exception of the ANOVA showing that participants in the action group performed better at posttest compared to those in the observation group. A repeated-measures ANOVA was able to recover the same qualitative result, but I was unable to recover the numbers reported in the original paper. 
+
+[PILOT/COPILOT ENTER RELEVANT INFORMATION BELOW]
+
+```{r}
+Author_Assistance = FALSE # was author assistance provided? (if so, enter TRUE)
+
+Insufficient_Information_Errors <- 0 # how many discrete insufficient information issues did you encounter?
+
+# Assess the causal locus (discrete reproducibility issues) of any reproducibility errors. Note that there doesn't necessarily have to be a one-to-one correspondance between discrete reproducibility issues and reproducibility errors. For example, it could be that the original article neglects to mention that a Greenhouse-Geisser correct was applied to ANOVA outcomes. This might result in multiple reproducibility errors, but there is a single causal locus (discrete reproducibility issue).
+
+locus_typo <- 0 # how many discrete issues did you encounter that related to typographical errors?
+locus_specification <- 1 # how many discrete issues did you encounter that related to incomplete, incorrect, or unclear specification of the original analyses?
+locus_analysis <- 0 # how many discrete issues did you encounter that related to errors in the authors' original analyses?
+locus_data <- 0 # how many discrete issues did you encounter that related to errors in the data files shared by the authors?
+locus_unidentified <- 0 # how many discrete issues were there for which you could not identify the cause
+
+# How many of the above issues were resolved through author assistance?
+locus_typo_resolved <- NA # how many discrete issues did you encounter that related to typographical errors?
+locus_specification_resolved <- NA # how many discrete issues did you encounter that related to incomplete, incorrect, or unclear specification of the original analyses?
+locus_analysis_resolved <- NA # how many discrete issues did you encounter that related to errors in the authors' original analyses?
+locus_data_resolved <- NA # how many discrete issues did you encounter that related to errors in the data files shared by the authors?
+locus_unidentified_resolved <- NA # how many discrete issues were there for which you could not identify the cause
+
+Affects_Conclusion <- FALSE # Do any reproducibility issues encounter appear to affect the conclusions made in the original article? TRUE, FALSE, or NA. This is a subjective judgement, but you should taking into account multiple factors, such as the presence/absence of decision errors, the number of target outcomes that could not be reproduced, the type of outcomes that could or could not be reproduced, the difference in magnitude of effect sizes, and the predictions of the specific hypothesis under scrutiny.
+```
+
+[PILOT/COPILOT DOD NOT EDIT THE CODE CHUNK BELOW]
+
+```{r}
+reportObject <- reportObject %>%
+  filter(dummyRow == FALSE) %>% # remove the dummy row
+  select(-dummyRow) %>% # remove dummy row designation
+  mutate(articleID = articleID) %>% # add variables to report 
+  select(articleID, everything()) # make articleID first column
+
+# decide on final outcome
+if(any(reportObject$comparisonOutcome %in% c("MAJOR_ERROR", "DECISION_ERROR")) | Insufficient_Information_Errors > 0){
+  finalOutcome <- "Failure without author assistance"
+  if(Author_Assistance == T){
+    finalOutcome <- "Failure despite author assistance"
+  }
+}else{
+  finalOutcome <- "Success without author assistance"
+  if(Author_Assistance == T){
+    finalOutcome <- "Success with author assistance"
+  }
+}
+
+# collate report extra details
+reportExtras <- data.frame(articleID, pilotNames, copilotNames, pilotTTC, copilotTTC, pilotStartDate, copilotStartDate, completionDate, Author_Assistance, finalOutcome, Insufficient_Information_Errors, locus_typo, locus_specification, locus_analysis, locus_data, locus_unidentified, locus_typo_resolved, locus_specification_resolved, locus_analysis_resolved, locus_data_resolved, locus_unidentified_resolved)
+
+# save report objects
+if(reportType == "pilot"){
+  write_csv(reportObject, "pilotReportDetailed.csv")
+  write_csv(reportExtras, "pilotReportExtras.csv")
+}
+
+if(reportType == "final"){
+  write_csv(reportObject, "finalReportDetailed.csv")
+  write_csv(reportExtras, "finalReportExtras.csv")
+}
+```
+
+# Session information
+
+[This function will output information about the package versions used in this report:]
+
+```{r session_info, include=TRUE, echo=TRUE, results='markup'}
+devtools::session_info()
+```
