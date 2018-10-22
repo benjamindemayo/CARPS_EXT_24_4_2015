@@ -75,7 +75,7 @@ reportObject <- data.frame(dummyRow = TRUE, reportedValue = NA, obtainedValue = 
 # Step 2: Load data
 
 ```{r}
-load("~/Desktop/CARPS_EXT_24_4_2015/data/study 1 physics_dataverse.RData")
+load("~/Dropbox/CARPS_EXT_24_4_2015/data/study 1 physics_dataverse.RData")
 
 study_one_df <- x
 ```
@@ -113,6 +113,73 @@ pre_post_summary <-
     pretest_mean = mean(pretest_magnitude),
     postest_mean = mean(posttest_magnitude)
   )
+
+pre_ci <- 
+  study_one_renamed_df %>% 
+  group_by(group) %>% 
+  langcog::multi_boot_standard(col = "pretest_magnitude") %>% 
+  ungroup() %>%  
+  rename(
+    ci_upper_pre = ci_upper,
+    ci_lower_pre = ci_lower,
+    mean_pre = mean
+  )
+
+post_ci <- 
+  study_one_renamed_df %>% 
+  group_by(group) %>% 
+  langcog::multi_boot_standard(col = "posttest_magnitude") %>% 
+  ungroup %>% 
+  rename(
+    ci_upper_post = ci_upper,
+    ci_lower_post = ci_lower,
+    mean_post = mean
+  )
+
+pre_post_summary <- 
+  pre_post_summary %>% 
+  left_join(post_ci %>% select(-contains("mean")), by = "group") %>% 
+  left_join(pre_ci %>% select(-contains('mean')), by = "group")
+```
+
+## Recreating the plot
+
+```{r}
+pre_post_summary_tidy <- 
+  pre_post_summary %>% 
+  gather(measurement, value, -group) %>% 
+  mutate(phase = case_when(
+    str_detect(measurement, "pre") ~ "Pretest",
+    str_detect(measurement, "post") ~ "Posttest"
+  )) %>% 
+  mutate(measurement = case_when(
+    str_detect(measurement, "ci_upper") ~"ci_upper",
+    str_detect(measurement, "ci_lower") ~"ci_lower",
+    str_detect(measurement, "mean") ~ "mean"
+  )) %>% 
+  spread(measurement, value)
+
+pre_post_summary_tidy %>%  
+  mutate(phase = fct_relevel(phase, "Pretest", "Posttest")) %>% 
+  ggplot(aes(x = phase, y = mean, color = group, group = group)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.1) +
+  labs(
+    y = "Accuracy",
+    x = "Test",
+    title = "Study 1"
+  ) + 
+  ggthemes::theme_few() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "top",
+    plot.title = element_text(hjust = 0.5)
+  ) +
+  coord_cartesian(ylim = c(0.2, 0.8)) +
+  geom_hline(aes(yintercept = 0.5), linetype = "dashed", color = "red") +
+  scale_y_continuous(breaks = seq(0.2, 0.8, by = 0.1))
+  
 ```
 
 
