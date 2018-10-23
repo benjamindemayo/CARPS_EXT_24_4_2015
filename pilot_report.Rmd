@@ -62,6 +62,7 @@ library(haven) # import and export 'SPSS', 'Stata' and 'SAS' Files
 library(readxl) # import excel files
 library(afex)
 library(ez)
+library(plotrix)
 #library(CARPSreports) # custom report functions
 ```
 
@@ -111,35 +112,18 @@ pre_post_summary <-
   group_by(group) %>% 
   summarize(
     pretest_mean = mean(pretest_magnitude),
-    postest_mean = mean(posttest_magnitude)
-  )
-
-pre_ci <- 
-  study_one_renamed_df %>% 
-  group_by(group) %>% 
-  langcog::multi_boot_standard(col = "pretest_magnitude") %>% 
-  ungroup() %>%  
-  rename(
-    ci_upper_pre = ci_upper,
-    ci_lower_pre = ci_lower,
-    mean_pre = mean
-  )
-
-post_ci <- 
-  study_one_renamed_df %>% 
-  group_by(group) %>% 
-  langcog::multi_boot_standard(col = "posttest_magnitude") %>% 
-  ungroup %>% 
-  rename(
-    ci_upper_post = ci_upper,
-    ci_lower_post = ci_lower,
-    mean_post = mean
-  )
-
-pre_post_summary <- 
-  pre_post_summary %>% 
-  left_join(post_ci %>% select(-contains("mean")), by = "group") %>% 
-  left_join(pre_ci %>% select(-contains('mean')), by = "group")
+    posttest_mean = mean(posttest_magnitude),
+    pretest_sem = std.error(pretest_magnitude, na.rm = TRUE),
+    posttest_sem = std.error(posttest_magnitude, na.rm = TRUE)
+  ) %>% 
+  ungroup() %>% 
+  mutate(
+    ci_lower_pre = pretest_mean - pretest_sem,
+    ci_upper_pre = pretest_mean + pretest_sem,
+    ci_lower_post = posttest_mean - posttest_sem,
+    ci_upper_post = posttest_mean + posttest_sem
+  ) %>% 
+  select(-contains("sem"))
 ```
 
 ## Recreating the plot
@@ -164,7 +148,7 @@ pre_post_summary_tidy %>%
   ggplot(aes(x = phase, y = mean, color = group, group = group)) +
   geom_point() +
   geom_line() +
-  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.1) +
+  geom_errorbar(aes(ymin = ci_lower, ymax = ci_upper), width = 0.05) +
   labs(
     y = "Accuracy",
     x = "Test",
